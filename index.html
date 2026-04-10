@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>차량 운행 규제 확인</title>
+    <title>차량 운행 규제 확인 (공휴일 반영)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@600;700&display=swap');
@@ -36,6 +36,10 @@
         </div>
 
         <div id="resultArea" class="mt-8 space-y-4 hidden">
+            <div id="holidayBanner" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-center text-sm font-bold">
+                🎉 해당 날짜는 공휴일(또는 주말)이므로 운행 규제가 없습니다!
+            </div>
+
             <div id="card5" class="p-5 rounded-2xl border-2 flex justify-between items-center">
                 <div>
                     <p class="text-sm font-bold opacity-70">5부제 (요일 기준)</p>
@@ -51,16 +55,19 @@
                 </div>
                 <div id="icon2" class="text-2xl"></div>
             </div>
-
-            <p class="text-center text-[11px] text-slate-400 pt-2 font-medium">
-                ※ 2026년 환경 지침에 따라 하이브리드·경차도 제한 대상에 포함될 수 있습니다.
-            </p>
         </div>
     </div>
 
     <script>
-        // 초기 날짜 세팅
         document.getElementById('checkDate').valueAsDate = new Date();
+
+        // 2026년 대한민국 공휴일 데이터 (대체공휴일 포함)
+        const holidays2026 = [
+            "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
+            "2026-03-01", "2026-03-02", "2026-05-05", "2026-05-24", "2026-05-25",
+            "2026-06-06", "2026-08-15", "2026-08-17", "2026-09-24", "2026-09-25",
+            "2026-09-26", "2026-09-28", "2026-10-03", "2026-10-05", "2026-10-09", "2026-12-25"
+        ];
 
         function check() {
             const digitInput = document.getElementById('carDigit').value;
@@ -75,29 +82,42 @@
             const targetDate = new Date(dateInput);
             const day = targetDate.getDay(); 
             const date = targetDate.getDate();
+            const dateString = dateInput; // YYYY-MM-DD 형식
+
+            const isWeekend = (day === 0 || day === 6);
+            const isHoliday = holidays2026.includes(dateString);
 
             document.getElementById('resultArea').classList.remove('hidden');
+            const holidayBanner = document.getElementById('holidayBanner');
 
-            // --- 5부제 판별 ---
-            let isRestricted5 = false;
-            const map = [[], [1,6], [2,7], [3,8], [4,9], [5,0], []];
-            if (map[day] && map[day].includes(lastDigit)) isRestricted5 = true;
-            
-            updateCard('card5', 'text5', 'icon5', isRestricted5);
+            if (isWeekend || isHoliday) {
+                holidayBanner.classList.remove('hidden');
+                updateCard('card5', 'text5', 'icon5', false, true);
+                updateCard('card2', 'text2', 'icon2', false, true);
+            } else {
+                holidayBanner.classList.add('hidden');
+                
+                // 5부제
+                const map = [[], [1,6], [2,7], [3,8], [4,9], [5,0], []];
+                const isRestricted5 = map[day].includes(lastDigit);
+                updateCard('card5', 'text5', 'icon5', isRestricted5, false);
 
-            // --- 2부제 판별 ---
-            // 날짜와 번호의 홀짝이 다르면 제한 (예: 1일(홀)에 2번(짝) 차는 제한)
-            const isRestricted2 = (date % 2) !== (lastDigit % 2);
-            
-            updateCard('card2', 'text2', 'icon2', isRestricted2);
+                // 2부제
+                const isRestricted2 = (date % 2) !== (lastDigit % 2);
+                updateCard('card2', 'text2', 'icon2', isRestricted2, false);
+            }
         }
 
-        function updateCard(cardId, textId, iconId, isRestricted) {
+        function updateCard(cardId, textId, iconId, isRestricted, isFree) {
             const card = document.getElementById(cardId);
             const text = document.getElementById(textId);
             const icon = document.getElementById(iconId);
 
-            if (isRestricted) {
+            if (isFree) {
+                card.className = "p-5 rounded-2xl border-2 flex justify-between items-center bg-blue-50 border-blue-200 text-blue-700";
+                text.innerText = "규제 없음";
+                icon.innerText = "☕";
+            } else if (isRestricted) {
                 card.className = "p-5 rounded-2xl border-2 flex justify-between items-center bg-red-50 border-red-200 text-red-700";
                 text.innerText = "운행 제한 대상";
                 icon.innerText = "🚫";
