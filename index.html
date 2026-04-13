@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>차량 운행 규제 확인</title>
+    <title>차량 운행 규제 확인 (실시간 반영)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@600;700&display=swap');
         body { font-family: 'Pretendard', sans-serif; }
+        /* 화살표 버튼 애니메이션 */
+        .nav-btn:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
@@ -20,24 +22,39 @@
         <div class="space-y-5">
             <div>
                 <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">차량 번호 끝자리</label>
-                <input type="number" id="carDigit" placeholder="0 ~ 9 사이 숫자 입력" min="0" max="9"
+                <input type="number" id="carDigit" placeholder="0 ~ 9 입력" min="0" max="9" oninput="check()"
                     class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all text-xl font-bold">
             </div>
 
             <div>
                 <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">확인 기준일</label>
-                <input type="date" id="checkDate" 
+                <input type="date" id="checkDate" onchange="check()"
                     class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all font-semibold">
             </div>
 
-            <button onclick="check()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-blue-600 transform active:scale-[0.98] transition-all shadow-lg text-lg">
-                제한 여부 확인하기
+            <div class="flex gap-3 mt-2">
+                <button onclick="changeDate(-1)" class="nav-btn flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="ml-1 text-sm">이전 날</span>
+                </button>
+                <button onclick="changeDate(1)" class="nav-btn flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center">
+                    <span class="mr-1 text-sm">다음 날</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
+
+            <button onclick="check()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-blue-600 transition-all shadow-lg text-lg">
+                결과 새로고침
             </button>
         </div>
 
         <div id="resultArea" class="mt-8 space-y-4 hidden">
             <div id="holidayBanner" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-center text-sm font-bold">
-                🎉 해당 날짜는 공휴일/주말이므로 규제가 없습니다!
+                🎉 해당 날짜는 공휴일(또는 주말/근로자의 날)이므로 규제가 없습니다!
             </div>
 
             <div id="card2" class="p-5 rounded-2xl border-2 flex justify-between items-center transition-colors duration-300">
@@ -59,8 +76,11 @@
     </div>
 
     <script>
-        document.getElementById('checkDate').valueAsDate = new Date();
+        // 초기 날짜 세팅
+        const dateInput = document.getElementById('checkDate');
+        dateInput.valueAsDate = new Date();
 
+        // 2026년 공휴일 데이터
         const holidays2026 = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
             "2026-03-01", "2026-03-02", "2026-05-01", "2026-05-05", "2026-05-24", 
@@ -69,26 +89,35 @@
             "2026-10-09", "2026-12-25"
         ];
 
+        // 날짜 이동 함수
+        function changeDate(offset) {
+            const currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + offset);
+            dateInput.valueAsDate = currentDate;
+            check(); // 날짜 변경 후 즉시 결과 업데이트
+        }
+
+        // 결과 판별 함수
         function check() {
             const digitInput = document.getElementById('carDigit').value;
-            const dateInput = document.getElementById('checkDate').value;
+            const selectedDate = dateInput.value;
             
-            if (digitInput === "" || !dateInput) {
-                alert("번호와 날짜를 입력해주세요.");
+            // 번호가 없으면 결과 숨기기
+            if (digitInput === "" || !selectedDate) {
+                document.getElementById('resultArea').classList.add('hidden');
                 return;
             }
 
             const lastDigit = parseInt(digitInput);
-            const targetDate = new Date(dateInput);
+            const targetDate = new Date(selectedDate);
             const day = targetDate.getDay(); 
             const date = targetDate.getDate();
-            const dateString = dateInput;
-
-            const isWeekend = (day === 0 || day === 6);
-            const isHoliday = holidays2026.includes(dateString);
 
             document.getElementById('resultArea').classList.remove('hidden');
             const holidayBanner = document.getElementById('holidayBanner');
+
+            const isWeekend = (day === 0 || day === 6);
+            const isHoliday = holidays2026.includes(selectedDate);
 
             if (isWeekend || isHoliday) {
                 holidayBanner.classList.remove('hidden');
