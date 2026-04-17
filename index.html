@@ -3,84 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>차량 운행 규제 확인 (실시간 반영)</title>
+    <title>차량 규제 확인 및 월간 달력</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@600;700&display=swap');
         body { font-family: 'Pretendard', sans-serif; }
-        /* 화살표 버튼 애니메이션 */
         .nav-btn:active { transform: scale(0.9); }
+        .calendar-day { min-height: 60px; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 min-h-screen p-4 pb-12">
 
-    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-        <h1 class="text-2xl font-extrabold text-slate-800 mb-8 text-center flex items-center justify-center gap-2">
-            🚗 운행 제한 판별기
-        </h1>
-        
-        <div class="space-y-5">
-            <div>
-                <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">차량 번호 끝자리</label>
-                <input type="number" id="carDigit" placeholder="0 ~ 9 입력" min="0" max="9" oninput="check()"
-                    class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all text-xl font-bold">
+    <div class="max-w-md mx-auto space-y-6">
+        <div class="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <h1 class="text-2xl font-extrabold text-slate-800 mb-8 text-center">🚗 운행 제한 판별기</h1>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">차량 번호 끝자리</label>
+                    <input type="number" id="carDigit" placeholder="0 ~ 9 입력" min="0" max="9" oninput="updateAll()"
+                        class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all text-xl font-bold text-center">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">확인 기준일</label>
+                    <div class="flex items-center gap-2">
+                        <button onclick="changeDate(-1)" class="nav-btn p-3 bg-slate-100 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <input type="date" id="checkDate" onchange="updateAll()"
+                            class="flex-1 px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-blue-500 outline-none font-semibold text-center">
+                        <button onclick="changeDate(1)" class="nav-btn p-3 bg-slate-100 rounded-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-bold text-slate-500 mb-2 ml-1">확인 기준일</label>
-                <input type="date" id="checkDate" onchange="check()"
-                    class="w-full px-5 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-blue-500 focus:bg-white outline-none transition-all font-semibold">
+            <div id="resultArea" class="mt-8 space-y-3 hidden">
+                <div id="holidayBanner" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-center text-xs font-bold">
+                    🎉 공휴일/주말은 규제가 없습니다!
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div id="card2" class="p-4 rounded-2xl border-2 flex flex-col items-center justify-center">
+                        <p class="text-[10px] font-bold opacity-60">2부제</p>
+                        <p id="text2" class="text-sm font-black"></p>
+                    </div>
+                    <div id="card5" class="p-4 rounded-2xl border-2 flex flex-col items-center justify-center">
+                        <p class="text-[10px] font-bold opacity-60">5부제</p>
+                        <p id="text5" class="text-sm font-black"></p>
+                    </div>
+                </div>
             </div>
-
-            <div class="flex gap-3 mt-2">
-                <button onclick="changeDate(-1)" class="nav-btn flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="15 19l-7-7 7-7" />
-                    </svg>
-                    <span class="ml-1 text-sm">이전 날</span>
-                </button>
-                <button onclick="changeDate(1)" class="nav-btn flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl transition-all flex items-center justify-center">
-                    <span class="mr-1 text-sm">다음 날</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="9 5l7 7-7 7" />
-                    </svg>
-                </button>
-            </div>
-
-            <button onclick="check()" class="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-blue-600 transition-all shadow-lg text-lg">
-                결과 새로고침
-            </button>
         </div>
 
-        <div id="resultArea" class="mt-8 space-y-4 hidden">
-            <div id="holidayBanner" class="hidden p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-center text-sm font-bold">
-                🎉 해당 날짜는 공휴일(또는 주말/근로자의 날)이므로 규제가 없습니다!
+        <div id="calendarArea" class="bg-white rounded-3xl shadow-xl p-6 border border-gray-100 hidden">
+            <h2 id="calendarTitle" class="text-lg font-bold text-slate-800 mb-4 text-center">2026년 0월</h2>
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2">
+                <div class="text-red-400">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div>토</div>
             </div>
-
-            <div id="card2" class="p-5 rounded-2xl border-2 flex justify-between items-center transition-colors duration-300">
-                <div>
-                    <p class="text-sm font-bold opacity-70">2부제 (날짜 기준)</p>
-                    <p id="text2" class="text-lg font-black mt-1"></p>
+            <div id="calendarGrid" class="grid grid-cols-7 gap-1">
                 </div>
-                <div id="icon2" class="text-2xl"></div>
-            </div>
-
-            <div id="card5" class="p-5 rounded-2xl border-2 flex justify-between items-center transition-colors duration-300">
-                <div>
-                    <p class="text-sm font-bold opacity-70">5부제 (요일 기준)</p>
-                    <p id="text5" class="text-lg font-black mt-1"></p>
-                </div>
-                <div id="icon5" class="text-2xl"></div>
+            <div class="mt-4 flex justify-center gap-4 text-[10px] font-semibold text-slate-400">
+                <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> 가능</div>
+                <div class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> 제한</div>
             </div>
         </div>
     </div>
 
     <script>
-        // 초기 날짜 세팅
         const dateInput = document.getElementById('checkDate');
-        dateInput.valueAsDate = new Date();
+        
+        // 1. 접속 시 항상 오늘 날짜로 초기화 (캐시 무시)
+        window.onload = function() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+            updateAll();
+        };
 
-        // 2026년 공휴일 데이터
         const holidays2026 = [
             "2026-01-01", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19",
             "2026-03-01", "2026-03-02", "2026-05-01", "2026-05-05", "2026-05-24", 
@@ -89,71 +92,117 @@
             "2026-10-09", "2026-12-25"
         ];
 
-        // 날짜 이동 함수
         function changeDate(offset) {
-            const currentDate = new Date(dateInput.value);
-            currentDate.setDate(currentDate.getDate() + offset);
-            dateInput.valueAsDate = currentDate;
-            check(); // 날짜 변경 후 즉시 결과 업데이트
+            const current = new Date(dateInput.value);
+            current.setDate(current.getDate() + offset);
+            dateInput.valueAsDate = current;
+            updateAll();
         }
 
-        // 결과 판별 함수
-        function check() {
-            const digitInput = document.getElementById('carDigit').value;
-            const selectedDate = dateInput.value;
-            
-            // 번호가 없으면 결과 숨기기
-            if (digitInput === "" || !selectedDate) {
+        function updateAll() {
+            checkSelectedDate();
+            renderCalendar();
+        }
+
+        function checkSelectedDate() {
+            const digit = document.getElementById('carDigit').value;
+            if (digit === "") {
                 document.getElementById('resultArea').classList.add('hidden');
+                document.getElementById('calendarArea').classList.add('hidden');
                 return;
             }
-
-            const lastDigit = parseInt(digitInput);
-            const targetDate = new Date(selectedDate);
-            const day = targetDate.getDay(); 
-            const date = targetDate.getDate();
-
             document.getElementById('resultArea').classList.remove('hidden');
-            const holidayBanner = document.getElementById('holidayBanner');
+            document.getElementById('calendarArea').classList.remove('hidden');
 
-            const isWeekend = (day === 0 || day === 6);
-            const isHoliday = holidays2026.includes(selectedDate);
+            const res = getStatus(new Date(dateInput.value), parseInt(digit));
+            
+            const banner = document.getElementById('holidayBanner');
+            if (res.isFree) banner.classList.remove('hidden');
+            else banner.classList.add('hidden');
 
-            if (isWeekend || isHoliday) {
-                holidayBanner.classList.remove('hidden');
-                updateCard('card5', 'text5', 'icon5', false, true);
-                updateCard('card2', 'text2', 'icon2', false, true);
+            updateUI('card2', 'text2', res.res2, res.isFree);
+            updateUI('card5', 'text5', res.res5, res.isFree);
+        }
+
+        function getStatus(targetDate, lastDigit) {
+            const y = targetDate.getFullYear();
+            const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const d = String(targetDate.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${d}`;
+            
+            const dayOfWeek = targetDate.getDay();
+            const dateNum = targetDate.getDate();
+            const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+            const isHoliday = holidays2026.includes(dateStr);
+            const isFree = isWeekend || isHoliday;
+
+            let res5 = false;
+            const map5 = [[], [1,6], [2,7], [3,8], [4,9], [5,0], []];
+            if (map5[dayOfWeek] && map5[dayOfWeek].includes(lastDigit)) res5 = true;
+
+            let res2 = (dateNum % 2) !== (lastDigit % 2);
+
+            return { isFree, res2, res5 };
+        }
+
+        function updateUI(cardId, textId, isRestricted, isFree) {
+            const card = document.getElementById(cardId);
+            const text = document.getElementById(textId);
+            if (isFree) {
+                card.className = "p-4 rounded-2xl border-2 flex flex-col items-center bg-indigo-50 border-indigo-100 text-indigo-600";
+                text.innerText = "규제 없음";
+            } else if (isRestricted) {
+                card.className = "p-4 rounded-2xl border-2 flex flex-col items-center bg-red-50 border-red-100 text-red-600";
+                text.innerText = "운행 제한";
             } else {
-                holidayBanner.classList.add('hidden');
-                
-                // 5부제 로직
-                const map = [[], [1,6], [2,7], [3,8], [4,9], [5,0], []];
-                const isRestricted5 = map[day].includes(lastDigit);
-                updateCard('card5', 'text5', 'icon5', isRestricted5, false);
-
-                // 2부제 로직
-                const isRestricted2 = (date % 2) !== (lastDigit % 2);
-                updateCard('card2', 'text2', 'icon2', isRestricted2, false);
+                card.className = "p-4 rounded-2xl border-2 flex flex-col items-center bg-emerald-50 border-emerald-100 text-emerald-600";
+                text.innerText = "운행 가능";
             }
         }
 
-        function updateCard(cardId, textId, iconId, isRestricted, isFree) {
-            const card = document.getElementById(cardId);
-            const text = document.getElementById(textId);
-            const icon = document.getElementById(iconId);
+        function renderCalendar() {
+            const digit = parseInt(document.getElementById('carDigit').value);
+            const baseDate = new Date(dateInput.value);
+            const year = baseDate.getFullYear();
+            const month = baseDate.getMonth();
+            
+            document.getElementById('calendarTitle').innerText = `${year}년 ${month + 1}월`;
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = "";
 
-            if (isFree) {
-                card.className = "p-5 rounded-2xl border-2 flex justify-between items-center bg-indigo-50 border-indigo-200 text-indigo-700";
-                text.innerText = "운행 규제 없음";
-                icon.innerText = "🌟";
-            } else if (isRestricted) {
-                card.className = "p-5 rounded-2xl border-2 flex justify-between items-center bg-red-50 border-red-200 text-red-700";
-                text.innerText = "운행 제한 대상";
-                icon.innerText = "🚫";
-            } else {
-                card.className = "p-5 rounded-2xl border-2 flex justify-between items-center bg-emerald-50 border-emerald-200 text-emerald-700";
-                text.innerText = "정상 운행 가능";
-                icon.innerText = "✅";
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+
+            // 빈 칸
+            for (let i = 0; i < firstDay; i++) {
+                grid.innerHTML += `<div class="calendar-day"></div>`;
+            }
+
+            // 날짜 채우기
+            for (let d = 1; d <= lastDate; d++) {
+                const iterDate = new Date(year, month, d);
+                const status = getStatus(iterDate, digit);
+                
+                const dot2 = status.isFree ? 'bg-indigo-400' : (status.res2 ? 'bg-red-500' : 'bg-emerald-500');
+                const dot5 = status.isFree ? 'bg-indigo-400' : (status.res5 ? 'bg-red-500' : 'bg-emerald-500');
+                
+                const isSelected = d === baseDate.getDate() ? 'ring-2 ring-blue-500 bg-blue-50' : 'bg-white';
+
+                grid.innerHTML += `
+                    <div class="calendar-day ${isSelected} rounded-lg border border-slate-100 flex flex-col items-center justify-between py-1">
+                        <span class="text-[10px] font-bold ${iterDate.getDay()===0?'text-red-400':''}">${d}</span>
+                        <div class="flex flex-col gap-0.5 w-full px-1">
+                            <div class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full ${dot2}"></span>
+                                <span class="text-[7px] text-slate-400">2부</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full ${dot5}"></span>
+                                <span class="text-[7px] text-slate-400">5부</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
         }
     </script>
